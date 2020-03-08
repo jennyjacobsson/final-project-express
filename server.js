@@ -9,6 +9,9 @@ import cloudinaryStorage from 'multer-storage-cloudinary'
 
 dotenv.config()
 
+const sgMail = require('@sendgrid/mail');
+sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+
 cloudinary.config({
   cloud_name: 'plants', // this needs to be whatever you get from cloudinary
   api_key: process.env.CLOUDINARY_API_KEY,
@@ -31,6 +34,8 @@ mongoose.Promise = Promise
 const SalesAd = mongoose.model("SalesAd", {
   imageUrl: String,
   imageId: String,
+  name: String,
+  email: String,
   title: String,
   type: String,
   location: String,
@@ -53,10 +58,13 @@ app.get('/', (req, res) => {
 
 app.post("/ad", parser.single('image'), async (req, res) => {
   try {
-    const { type, location, description, price } = req.body
+    const { name, email, title, type, location, description, price } = req.body
     const ad = new SalesAd({
       imageUrl: req.file.secure_url,
       imageId: req.file.public_id,
+      name,
+      email,
+      title,
       type,
       location,
       description,
@@ -83,6 +91,34 @@ app.get("/ads", async (req, res) => {
 
   const ads = await SalesAd.find(params).limit(30).exec()
   res.json(ads)
+})
+
+app.get("/ads/:id", async (req, res) => {
+  const { id } = req.params
+
+  const ad = await SalesAd.findById(id)
+
+  res.json(ad)
+})
+
+app.post('/response', async (req, res) => {
+  const { _id, email, subject, message } = req.body
+  const ad = await SalesAd.findById(_id)
+
+  const msg = {
+    to: 'enni@oans.net',
+    from: 'noreply@johanhermansson.se',
+    replyTo: 'johan@johanhermansson.se',
+    subject: subject,
+    text: message
+  };
+
+  sgMail.send(msg).then(() => {
+    res.status(201).json({ message: 'Response sent' })
+  }).catch(err => {
+    console.error(err)
+    res.status(400).json({ message: 'E-mail could not be sent', errors: err.errors })
+  });
 })
 
 // Start the server
