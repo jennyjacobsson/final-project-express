@@ -7,7 +7,12 @@ import cloudinary from 'cloudinary'
 import multer from 'multer'
 import cloudinaryStorage from 'multer-storage-cloudinary'
 
+import crypto from "crypto"
+import bcrypt from "bcrypt"
+
 dotenv.config()
+
+const salt = bcrypt.genSaltSync(10);
 
 const sgMail = require('@sendgrid/mail');
 sgMail.setApiKey(process.env.SENDGRID_API_KEY);
@@ -43,6 +48,35 @@ const SalesAd = mongoose.model("SalesAd", {
   price: Number
 })
 
+const User = mongoose.model("User", {
+  name: {
+    type: String,
+    unique: true
+  },
+  email: {
+    type: String,
+    unique: true
+  },
+  password: {
+    type: String,
+    required: true
+  },
+  accessToken: {
+    type: String,
+    default: () => crypto.randomBytes(128).toString("hex")
+  }
+})
+
+const authenticateUser = async (req, res, next) => {
+  const user = await User.findOne({ accessToken: req.header("Authorization") })
+  if (user) {
+    req.user = user
+    next()
+  } else {
+    res.status(401).json({ loggedOut: true, message: "Please log in to view this content" })
+  }
+}
+
 const port = process.env.PORT || 8080
 const app = express()
 
@@ -56,6 +90,34 @@ app.get('/', (req, res) => {
 })
 
 
+//Registration
+app.post("/users", async (req, res) => {
+  try {
+    const { name, email, password } = req.body
+    const user = new User({
+      name, email, password: bcrypt.hashSync(password, salt)
+    })
+    const saved = await user.save()
+    res.status(201).json({ saved, message: "Registration succeeded" })
+  } catch (err) {
+    console.error(err)
+    res.status(400).json({ message: "Could not create user", errors: err.errors })
+  }
+})
+
+//Log in
+app.post("/login", async (req, res) => {
+  const { email, password } = req.body
+  const user = await User.findOne({ email })
+  if (user && bcrypt.compareSync(password, user.password)) {
+    res.json({ userId: user._id, accessToken: user.accessToken })
+  } else {
+    res.status(400).json({ notFound: true })
+  }
+}
+)
+
+app.post('/ad', authenticateUser)
 app.post("/ad", parser.single('image'), async (req, res) => {
   try {
     const { name, email, title, type, location, description, price } = req.body
@@ -69,6 +131,7 @@ app.post("/ad", parser.single('image'), async (req, res) => {
       location,
       description,
       price,
+      userId: req.user.id
     })
     const saved = await ad.save()
     res.status(201).json({ saved, message: "Ad completed" })
@@ -78,7 +141,7 @@ app.post("/ad", parser.single('image'), async (req, res) => {
 })
 
 app.get("/ads", async (req, res) => {
-  const { search } = req.query
+  const { search, userId } = req.query
   const params = {}
   if (search) {
     const r = new RegExp(search, 'i')
@@ -89,19 +152,34 @@ app.get("/ads", async (req, res) => {
     ]
   }
 
+  if (userId) {
+    params.userId = userId
+  }
+
   const ads = await SalesAd.find(params).limit(30).exec()
   res.json(ads)
 })
 
 app.get("/ads/:id", async (req, res) => {
   const { id } = req.params
-
   const ad = await SalesAd.findById(id)
-
   res.json(ad)
 })
 
-app.post('/response', async (req, res) => {
+
+//try, catch
+app.delete("/ads/:id", authenticateUser)
+app.delete("/ads/:id", async (req, res) => {
+  const { id } = req.params
+  const ad = await SalesAd.findById(id)
+  if (ad.userId !== req.user.id) {
+    res.status(400).send({ message: 'E-mail could not be sent' })
+  }
+  await ad.deleteOne()
+  res.json(ad)
+})
+
+app.post('/answer', async (req, res) => {
   const { _id, email, subject, message } = req.body
   const ad = await SalesAd.findById(_id)
 
@@ -114,11 +192,17 @@ app.post('/response', async (req, res) => {
   };
 
   sgMail.send(msg).then(() => {
-    res.status(201).json({ message: 'Response sent' })
+    res.status(201).json({ message: 'Answer sent' })
   }).catch(err => {
     console.error(err)
-    res.status(400).json({ message: 'E-mail could not be sent', errors: err.errors })
+    res.status(400).json({ message: 'E-mail could not be sent', errors: err.message })
   });
+})
+
+app.get('/mypage', authenticateUser)
+//This will only be shown if the next()-function is called from the middleware
+app.get('/mypage', (req, res) => {
+  res.json({ secret: 'This is a super secret message' })
 })
 
 // Start the server
