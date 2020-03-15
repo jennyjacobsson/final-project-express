@@ -25,7 +25,7 @@ cloudinary.config({
 
 const storage = cloudinaryStorage({
   cloudinary,
-  folder: 'test',
+  folder: 'plants',
   allowedFormats: ['jpg', 'png'],
   transformation: [{ width: 300, height: 300, crop: "limit" }]
 })
@@ -45,7 +45,9 @@ const SalesAd = mongoose.model("SalesAd", {
   type: String,
   location: String,
   description: String,
-  price: Number
+  price: Number,
+  createdAt: Number,
+  userId: String
 })
 
 const User = mongoose.model("User", {
@@ -110,7 +112,7 @@ app.post("/login", async (req, res) => {
   const { email, password } = req.body
   const user = await User.findOne({ email })
   if (user && bcrypt.compareSync(password, user.password)) {
-    res.json({ userId: user._id, accessToken: user.accessToken })
+    res.json({ userId: user._id, userName: user.name, accessToken: user.accessToken })
   } else {
     res.status(400).json({ notFound: true })
   }
@@ -120,12 +122,10 @@ app.post("/login", async (req, res) => {
 app.post('/ad', authenticateUser)
 app.post("/ad", parser.single('image'), async (req, res) => {
   try {
-    const { name, email, title, type, location, description, price } = req.body
+    const { title, type, location, description, price } = req.body
     const ad = new SalesAd({
       imageUrl: req.file.secure_url,
       imageId: req.file.public_id,
-      name,
-      email,
       title,
       type,
       location,
@@ -173,22 +173,37 @@ app.delete("/ads/:id", async (req, res) => {
   const { id } = req.params
   const ad = await SalesAd.findById(id)
   if (ad.userId !== req.user.id) {
-    res.status(400).send({ message: 'E-mail could not be sent' })
+    res.status(400).send({ message: 'You have wrong permissions' })
   }
-  await ad.deleteOne()
-  res.json(ad)
+  // TODO: Remove image from Cloudinary
+  await SalesAd.deleteOne({ _id: id })
+  res.json({})
 })
 
 app.post('/answer', async (req, res) => {
-  const { _id, email, subject, message } = req.body
-  const ad = await SalesAd.findById(_id)
+  const { id, name, email, message } = req.body
+  const ad = await SalesAd.findById(id)
+
+  const text = [
+    'Hello,',
+    '',
+    'Someone has answered on your plant ad:',
+    '',
+    `Name: ${name}`,
+    `E-mail: ${email}`,
+    `Message: ${message}`,
+    '',
+    `The link to your plant ad: http://localhost:8080/ads/${ad._id}`,
+    '',
+    '/Plants Ahoy!'
+  ]
 
   const msg = {
     to: 'enni@oans.net',
     from: 'noreply@johanhermansson.se',
-    replyTo: 'johan@johanhermansson.se',
-    subject: subject,
-    text: message
+    replyTo: email,
+    subject: 'Answer from Plants Ahoy!',
+    text: text.join("\n")
   };
 
   sgMail.send(msg).then(() => {
