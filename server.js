@@ -193,13 +193,14 @@ app.post('/answer', async (req, res) => {
     `E-mail: ${email}`,
     `Message: ${message}`,
     '',
-    `The link to your plant ad: https://plants-ahoy.netlify.com/ads/${ad._id}`,
+    `The link to your plant ad: https://plants-ahoy.netlify.com/plants/${ad._id}`,
     '',
     '/Plants Ahoy!'
   ]
 
   const msg = {
     to: 'enni@oans.net',
+    // ad.email
     from: 'noreply@johanhermansson.se',
     replyTo: email,
     subject: 'Answer from Plants Ahoy!',
