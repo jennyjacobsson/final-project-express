@@ -193,7 +193,7 @@ app.post('/answer', async (req, res) => {
     `E-mail: ${email}`,
     `Message: ${message}`,
     '',
-    `The link to your plant ad: http://localhost:8080/ads/${ad._id}`,
+    `The link to your plant ad: https://plants-ahoy.netlify.com/ads/${ad._id}`,
     '',
     '/Plants Ahoy!'
   ]
