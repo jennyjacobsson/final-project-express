@@ -143,11 +143,12 @@ app.get("/ads", async (req, res) => {
   const { search, userId } = req.query
   const params = {}
   if (search) {
-    const r = new RegExp(search, 'i')
+    const regex = new RegExp(search, 'i')
     params.$or = [
-      { type: r },
-      { description: r },
-      { location: r }
+      { title: regex },
+      { type: regex },
+      { description: regex },
+      { location: regex }
     ]
   }
 
