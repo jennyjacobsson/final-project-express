@@ -6,7 +6,6 @@ import dotenv from 'dotenv'
 import cloudinary from 'cloudinary'
 import multer from 'multer'
 import cloudinaryStorage from 'multer-storage-cloudinary'
-
 import crypto from "crypto"
 import bcrypt from "bcrypt"
 
@@ -18,7 +17,7 @@ const sgMail = require('@sendgrid/mail');
 sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 
 cloudinary.config({
-  cloud_name: 'plants', // this needs to be whatever you get from cloudinary
+  cloud_name: 'plants',
   api_key: process.env.CLOUDINARY_API_KEY,
   api_secret: process.env.CLOUDINARY_API_SECRET
 })
@@ -27,7 +26,7 @@ const storage = cloudinaryStorage({
   cloudinary,
   folder: 'plants',
   allowedFormats: ['jpg', 'png'],
-  transformation: [{ width: 300, height: 300, crop: "limit" }]
+  transformation: [{ width: 500, height: 500, crop: "limit" }]
 })
 const parser = multer({ storage })
 
@@ -166,8 +165,6 @@ app.get("/ads/:id", async (req, res) => {
   res.json(ad)
 })
 
-
-//try, catch
 app.delete("/ads/:id", authenticateUser)
 app.delete("/ads/:id", async (req, res) => {
   const { id } = req.params
@@ -175,7 +172,6 @@ app.delete("/ads/:id", async (req, res) => {
   if (ad.userId !== req.user.id) {
     res.status(400).send({ message: 'You have wrong permissions' })
   }
-  // TODO: Remove image from Cloudinary
   await SalesAd.deleteOne({ _id: id })
   res.json({})
 })
@@ -183,7 +179,6 @@ app.delete("/ads/:id", async (req, res) => {
 app.post('/answer', async (req, res) => {
   const { id, name, email, message } = req.body
   const ad = await SalesAd.findById(id)
-
   const text = [
     'Hello,',
     '',
