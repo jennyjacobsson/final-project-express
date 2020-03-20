@@ -52,11 +52,14 @@ const SalesAd = mongoose.model("SalesAd", {
 const User = mongoose.model("User", {
   name: {
     type: String,
-    unique: true
+    unique: true,
+    trim: true
   },
   email: {
     type: String,
-    unique: true
+    unique: true,
+    lowercase: true,
+    trim: true
   },
   password: {
     type: String,
