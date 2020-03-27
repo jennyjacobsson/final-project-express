@@ -1,7 +1,12 @@
-# Express Starter Project
 
-This project includes the packages and babel setup for an express server, and is just meant to make things a little simpler to get up and running with.
+<h1>Final Project: Plant adoption API 🌱</h1>
 
-## Getting started
+<h3>Tech used 🤖</h3>
+<ul>
+  <li>Express</li>
+  <li>MongoDB</li>
+  <li>Mongoose</li>
+  <li>bcrypt/crypto</li>
+  <li>Cloudinary/CloudinaryStorage</li>
+</ul>
 
-Install dependencies with `npm install`, then start the server by running `npm run dev`
