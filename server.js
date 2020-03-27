@@ -194,7 +194,7 @@ app.post('/answer', async (req, res) => {
     '',
     `The link to your plant ad: https://plants-ahoy.netlify.com/plants/${ad._id}`,
     '',
-    '/Plants Ahoy!'
+    '/Plant adoption'
   ]
 
   const msg = {
@@ -202,7 +202,7 @@ app.post('/answer', async (req, res) => {
     // ad.email
     from: 'noreply@johanhermansson.se',
     replyTo: email,
-    subject: 'Answer from Plants Ahoy!',
+    subject: 'Answer from Plant adoption!',
     text: text.join("\n")
   };
 
